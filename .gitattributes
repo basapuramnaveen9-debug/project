@@ -1,0 +1,20 @@
+* text=auto eol=lf
+
+# Keep source and config files normalized as LF across platforms.
+.* text eol=lf
+*.py text eol=lf
+*.js text eol=lf
+*.css text eol=lf
+*.html text eol=lf
+*.md text eol=lf
+*.txt text eol=lf
+*.json text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf
+*.svg text eol=lf
+Dockerfile text eol=lf
+
+# Windows-native scripts should keep CRLF if added later.
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf

@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RTRP Compiler Studio</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg', v=asset_version) }}" type="image/svg+xml" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=asset_version) }}" />
+</head>
+<body>
+  <div class="page-shell">
+    <header class="hero">
+      <div class="hero-copy">
+        <p class="hero-tag">CODE OPTIMIZATION STUDIO</p>
+        <h1>AI-ASSISTED COMPILER OPTIMIZATION ENGINE</h1>
+        <div class="hero-panel" aria-hidden="true">
+          <div class="hero-chip chip-a">
+            <span>Live Execution</span>
+            <strong>Terminal-style stdin/stdout</strong>
+          </div>
+          <div class="hero-chip chip-b">
+            <span>Optimization</span>
+            <strong>Compiler + AI suggestions</strong>
+          </div>
+          <div class="hero-chip chip-c">
+            <span>Complexity</span>
+            <strong>Time, space, loops, runtime</strong>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="card input">
+        <div class="section-head workspace-head">
+          <div>
+            <p class="kicker">Workspace</p>
+            <h2>Code Optimization Workspace</h2>
+            <p class="sub">Paste your C code, then run analysis for optimization hints, runtime diagnostics, and complexity estimates.</p>
+          </div>
+        </div>
+
+        <label for="codeInput">Input Code</label>
+        <textarea id="codeInput" placeholder="Paste code here..."></textarea>
+
+        <div class="row workspace-actions">
+          <button id="optimizeBtn" type="button">Run Analysis</button>
+          <button id="sampleBtn" class="alt" type="button">Load Sample</button>
+        </div>
+
+        <p id="status" class="status workspace-status"></p>
+      </section>
+
+      <section class="card output">
+        <div class="section-head results-head">
+          <div>
+            <p class="kicker">Results</p>
+            <h2>Analysis Dashboard</h2>
+          </div>
+        </div>
+
+        <article class="block block-feature wide">
+          <div class="block-head">
+            <h3>Optimized Code</h3>
+            <span class="pill pill-blue">Transformed Output</span>
+          </div>
+          <pre id="optimizedOut">Results will appear here.</pre>
+        </article>
+
+        <article class="block block-feature wide">
+          <div class="block-head">
+            <h3>Program Output / Errors</h3>
+            <span class="pill pill-warm">Execution Log</span>
+          </div>
+          <textarea id="executionOut" class="execution-console" spellcheck="false" placeholder="Run analysis to see compiler output." readonly></textarea>
+          <div id="executionControls" class="execution-controls hidden">
+            <div class="execution-row execution-row-compact">
+              <button id="stopBtn" class="alt" type="button">Stop Program</button>
+            </div>
+            <p class="execution-help">Type directly inside the console above and press Enter when your C program asks for input.</p>
+          </div>
+        </article>
+      </section>
+    </main>
+
+    <section class="card metrics-bar">
+      <div class="section-head metrics-head">
+        <div>
+          <p class="kicker">Metrics</p>
+          <h2>Performance Summary</h2>
+        </div>
+      </div>
+
+      <div class="grid">
+        <article class="block stat-card accent-mint">
+          <div class="block-head">
+            <h3>AI Suggestions</h3>
+            <span class="pill">Hints</span>
+          </div>
+          <ul id="aiOut"></ul>
+        </article>
+        <article class="block stat-card accent-violet">
+          <div class="block-head">
+            <h3>Algorithm</h3>
+            <span class="pill">Detection</span>
+          </div>
+          <ul id="algoOut"></ul>
+        </article>
+        <article class="block stat-card accent-blue">
+          <div class="block-head">
+            <h3>Complexity</h3>
+            <span class="pill">Time</span>
+          </div>
+          <p id="complexityOut">-</p>
+        </article>
+        <article class="block stat-card accent-gold">
+          <div class="block-head">
+            <h3>Space Complexity</h3>
+            <span class="pill">Memory</span>
+          </div>
+          <p id="spaceComplexityOut">-</p>
+        </article>
+        <article class="block stat-card accent-pink">
+          <div class="block-head">
+            <h3>Loops</h3>
+            <span class="pill">Structure</span>
+          </div>
+          <p id="loopsOut">-</p>
+        </article>
+        <article class="block stat-card accent-cyan">
+          <div class="block-head">
+            <h3>Runtime</h3>
+            <span class="pill">Estimate</span>
+          </div>
+          <p id="runtimeOut">-</p>
+        </article>
+        <article class="block stat-card accent-blue">
+          <div class="block-head">
+            <h3>Lines Before Optimization</h3>
+            <span class="pill">Before</span>
+          </div>
+          <p id="linesBeforeOut">-</p>
+        </article>
+        <article class="block stat-card accent-gold">
+          <div class="block-head">
+            <h3>Lines After Optimization</h3>
+            <span class="pill">After</span>
+          </div>
+          <p id="linesAfterOut">-</p>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <script src="{{ url_for('static', filename='script.js', v=asset_version) }}"></script>
+</body>
+</html>
