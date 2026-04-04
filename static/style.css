@@ -1805,6 +1805,37 @@ body::after {
   text-align: center;
 }
 
+.build-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin: 6px 0 2px;
+  padding: 6px 12px;
+  border: 1px solid rgba(132, 173, 228, 0.24);
+  border-radius: 999px;
+  background: rgba(7, 16, 36, 0.62);
+  color: #dce7ff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  box-shadow: 0 10px 24px rgba(1, 8, 28, 0.18);
+}
+
+.build-indicator-source {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 20px;
+  padding: 0 8px;
+  border-radius: 999px;
+  background: rgba(71, 184, 255, 0.18);
+  color: #9ee6ff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+}
+
 .hero-actions {
   display: flex;
   flex-wrap: wrap;

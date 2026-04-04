@@ -1,5 +1,7 @@
 import os
+import subprocess
 import time
+from functools import lru_cache
 from pathlib import Path
 
 from flask import Flask, jsonify, render_template, request, send_from_directory
@@ -88,8 +90,56 @@ def current_asset_version():
     return str(int(time.time()))
 
 
+def _git_output(*args):
+    try:
+        result = subprocess.run(
+            ["git", *args],
+            cwd=BASE_DIR,
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except (OSError, subprocess.CalledProcessError):
+        return ""
+
+    return result.stdout.strip()
+
+
+@lru_cache(maxsize=1)
+def current_build_info():
+    commit = (
+        os.getenv("RENDER_GIT_COMMIT")
+        or os.getenv("GIT_COMMIT")
+        or _git_output("rev-parse", "HEAD")
+    )
+    branch = (
+        os.getenv("RENDER_GIT_BRANCH")
+        or os.getenv("GIT_BRANCH")
+        or _git_output("rev-parse", "--abbrev-ref", "HEAD")
+    )
+    source = "render" if os.getenv("RENDER_GIT_COMMIT") else "local"
+    short_commit = commit[:7] if commit else "unknown"
+
+    label_parts = []
+    if branch and branch != "HEAD":
+        label_parts.append(branch)
+    label_parts.append(short_commit)
+
+    return {
+        "branch": branch or "",
+        "commit": commit or "",
+        "short_commit": short_commit,
+        "source": source,
+        "label": " - ".join(label_parts),
+    }
+
+
 def render_page(template_name):
-    return render_template(template_name, asset_version=current_asset_version())
+    return render_template(
+        template_name,
+        asset_version=current_asset_version(),
+        build_info=current_build_info(),
+    )
 
 
 def analyze_code(code, language):
