@@ -1,6 +1,6 @@
-# RTRP
+# Code Optimization Studio
 
-RTRP is a Flask-based code optimization studio that analyzes source code, suggests improvements, generates AI-optimized variants, and runs programs in a browser-based workspace.
+Code Optimization Studio is a Flask-based code optimization workspace that analyzes source code, suggests improvements, generates AI-optimized variants, and runs programs in a browser-based interface.
 
 ## Highlights
 
@@ -90,7 +90,7 @@ python app.py
 
 ## Runtime Notes
 
-RTRP can use locally installed tools when available. Some runtimes/toolchains can also be prepared automatically inside `.runtime_cache`.
+The app can use locally installed tools when available. Some runtimes and toolchains can also be prepared automatically inside `.runtime_cache`.
 
 - JavaScript / TypeScript:
   - Uses `node`, `tsx`, `ts-node`, `deno`, or `bun` when available
@@ -109,19 +109,19 @@ RTRP can use locally installed tools when available. Some runtimes/toolchains ca
 Build:
 
 ```bash
-docker build -t rtrp .
+docker build -t code-optimization-studio .
 ```
 
 Run:
 
 ```bash
-docker run --rm -p 8000:8000 -e PORT=8000 rtrp
+docker run --rm -p 8000:8000 -e PORT=8000 code-optimization-studio
 ```
 
 With code execution enabled:
 
 ```bash
-docker run --rm -p 8000:8000 -e PORT=8000 -e ENABLE_CODE_EXECUTION=true rtrp
+docker run --rm -p 8000:8000 -e PORT=8000 -e ENABLE_CODE_EXECUTION=true code-optimization-studio
 ```
 
 ## Safety

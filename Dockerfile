@@ -19,7 +19,7 @@ RUN pip install --upgrade pip \
 COPY . .
 
 RUN useradd --create-home appuser \
-    && mkdir -p /app/.codex_tmp \
+    && mkdir -p /app/.session_tmp \
     && chown -R appuser:appuser /app
 
 USER appuser

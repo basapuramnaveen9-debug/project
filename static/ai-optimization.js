@@ -1,5 +1,5 @@
-const STORAGE_KEY = "rtrp-ai-optimization-request";
-const RETURN_TO_STUDIO_KEY = "rtrp-ai-optimization-return";
+const STORAGE_KEY = "studio-ai-optimization-request";
+const RETURN_TO_STUDIO_KEY = "studio-ai-optimization-return";
 const languageLabels = {
   c: "C",
   cpp: "C++",

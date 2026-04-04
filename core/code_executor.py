@@ -6,7 +6,7 @@ from pathlib import Path
 from core.language_runner import create_execution_artifacts
 from core.languages import normalize_language
 
-PROJECT_TEMP_ROOT = Path(__file__).resolve().parent.parent / ".codex_tmp"
+PROJECT_TEMP_ROOT = Path(__file__).resolve().parent.parent / ".session_tmp"
 INPUT_PATTERNS = {
     "c": re.compile(r"\b(scanf|fgets|getchar|gets)\b"),
     "cpp": re.compile(r"\b(cin|getline)\b"),

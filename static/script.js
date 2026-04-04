@@ -61,8 +61,8 @@ const DESKTOP_EDITOR_MIN_HEIGHT = 520;
 const MOBILE_EDITOR_MIN_HEIGHT = 360;
 const DESKTOP_FOCUS_EDITOR_OFFSET = 320;
 const MOBILE_FOCUS_EDITOR_OFFSET = 280;
-const AI_OPTIMIZATION_STORAGE_KEY = "rtrp-ai-optimization-request";
-const AI_OPTIMIZATION_RETURN_KEY = "rtrp-ai-optimization-return";
+const AI_OPTIMIZATION_STORAGE_KEY = "studio-ai-optimization-request";
+const AI_OPTIMIZATION_RETURN_KEY = "studio-ai-optimization-return";
 const SOURCE_FILE_ACCEPT = ".c,.cpp,.cc,.cxx,.java,.py,.js,.ts,.go,.rs,.cs,.php,.rb,.kt";
 const PRIMARY_LANGUAGE_OPTIONS = ["c", "cpp", "java", "python"];
 const MORE_LANGUAGE_OPTIONS = ["javascript", "typescript", "go", "rust", "csharp", "php", "ruby", "kotlin"];
@@ -1523,7 +1523,7 @@ async function pollExecution() {
 }
 
 function defineMonacoTheme(monaco) {
-  monaco.editor.defineTheme("rtrp-studio", {
+  monaco.editor.defineTheme("studio-theme", {
     base: "vs-dark",
     inherit: true,
     rules: [
@@ -1631,7 +1631,7 @@ function configureMonacoEditor(monaco) {
   editorShell.classList.add("monaco-ready");
   monacoEditor = monaco.editor.create(codeEditorEl, {
     model,
-    theme: "rtrp-studio",
+    theme: "studio-theme",
     ariaLabel: "Input code editor",
     automaticLayout: true,
     minimap: { enabled: false },
@@ -1695,7 +1695,7 @@ function configureOptimizedMonacoEditor(monaco) {
 
   optimizedMonacoEditor = monaco.editor.create(optimizedCodeEditorEl, {
     model,
-    theme: "rtrp-studio",
+    theme: "studio-theme",
     ariaLabel: "Optimized code viewer",
     automaticLayout: true,
     readOnly: true,

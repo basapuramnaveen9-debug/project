@@ -169,7 +169,7 @@ def ai_optimization_page():
 
 @app.route("/healthz")
 def healthz():
-    return jsonify({"ok": True, "service": "RTRP", "code_execution": is_code_execution_enabled()})
+    return jsonify({"ok": True, "service": "Optimization Studio", "code_execution": is_code_execution_enabled()})
 
 
 @app.route("/favicon.ico")

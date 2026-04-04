@@ -2792,6 +2792,26 @@ li + li {
   .hero h1 {
     max-width: 100%;
   }
+
+  .output {
+    gap: 18px;
+  }
+
+  .output .block-feature {
+    flex: 0 0 auto;
+    min-height: 320px;
+  }
+
+  .matched-output-panel {
+    --matched-output-panel-min-height: 240px;
+  }
+
+  .matched-output-panel .matched-output-content,
+  .matched-output-panel .optimized-code-editor,
+  .execution-shell,
+  .execution-console {
+    min-height: 240px;
+  }
 }
 
 @media (max-width: 720px) {

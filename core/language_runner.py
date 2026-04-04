@@ -21,9 +21,9 @@ DENO_RELEASE_BASE_URL = "https://github.com/denoland/deno/releases/latest/downlo
 KOTLIN_RELEASE_API_URL = "https://api.github.com/repos/JetBrains/kotlin/releases/latest"
 GO_DOWNLOAD_API_URL = "https://go.dev/dl/?mode=json&include=all"
 RUNTIME_DOWNLOAD_TIMEOUT_SECONDS = 90
-AUTO_INSTALL_DENO = os.getenv("RTRP_AUTO_INSTALL_DENO", "true").strip().lower() not in {"0", "false", "no"}
-AUTO_INSTALL_KOTLIN = os.getenv("RTRP_AUTO_INSTALL_KOTLIN", "true").strip().lower() not in {"0", "false", "no"}
-AUTO_INSTALL_GO = os.getenv("RTRP_AUTO_INSTALL_GO", "true").strip().lower() not in {"0", "false", "no"}
+AUTO_INSTALL_DENO = os.getenv("STUDIO_AUTO_INSTALL_DENO", "true").strip().lower() not in {"0", "false", "no"}
+AUTO_INSTALL_KOTLIN = os.getenv("STUDIO_AUTO_INSTALL_KOTLIN", "true").strip().lower() not in {"0", "false", "no"}
+AUTO_INSTALL_GO = os.getenv("STUDIO_AUTO_INSTALL_GO", "true").strip().lower() not in {"0", "false", "no"}
 
 
 def create_execution_artifacts(code, language, workspace, timeout_seconds=5, interactive=False):
@@ -146,7 +146,7 @@ def create_execution_artifacts(code, language, workspace, timeout_seconds=5, int
             return {"ok": False, "error": "C# runtime not found. Install .NET SDK or csc to run C# output."}
 
         source_path = workspace / "Program.cs"
-        project_path = workspace / "RTRP.csproj"
+        project_path = workspace / "Studio.csproj"
         output_dir = workspace / "out"
         source_path.write_text(source_code, encoding="utf-8")
         project_path.write_text(
@@ -171,7 +171,7 @@ def create_execution_artifacts(code, language, workspace, timeout_seconds=5, int
 
         return {
             "ok": True,
-            "run_cmd": [dotnet, str(output_dir / "RTRP.dll")],
+            "run_cmd": [dotnet, str(output_dir / "Studio.dll")],
             "cwd": str(workspace),
         }
 
@@ -373,7 +373,7 @@ def _resolve_javascript_run_command():
 
 def _resolve_node_command():
     return _resolve_known_binary(
-        env_var="RTRP_NODE_PATH",
+        env_var="STUDIO_NODE_PATH",
         command="node",
         patterns=[
             r"C:\Program Files\nodejs\node.exe",
@@ -385,7 +385,7 @@ def _resolve_node_command():
 
 def _resolve_rustc_command():
     return _resolve_known_binary(
-        env_var="RTRP_RUSTC_PATH",
+        env_var="STUDIO_RUSTC_PATH",
         command="rustc",
         patterns=[
             str(Path.home() / ".cargo/bin/rustc.exe"),
@@ -396,7 +396,7 @@ def _resolve_rustc_command():
 
 def _resolve_dotnet_command():
     return _resolve_known_binary(
-        env_var="RTRP_DOTNET_PATH",
+        env_var="STUDIO_DOTNET_PATH",
         command="dotnet",
         patterns=[
             r"C:\Program Files\dotnet\dotnet.exe",
@@ -408,7 +408,7 @@ def _resolve_dotnet_command():
 def _resolve_php_command():
     local_packages = Path.home() / "AppData/Local/Microsoft/WinGet/Packages"
     return _resolve_known_binary(
-        env_var="RTRP_PHP_PATH",
+        env_var="STUDIO_PHP_PATH",
         command="php",
         patterns=[
             r"C:\Program Files\PHP\php.exe",
@@ -421,7 +421,7 @@ def _resolve_php_command():
 
 def _resolve_ruby_command():
     return _resolve_known_binary(
-        env_var="RTRP_RUBY_PATH",
+        env_var="STUDIO_RUBY_PATH",
         command="ruby",
         patterns=[
             r"C:\Ruby*\bin\ruby.exe",
@@ -450,7 +450,7 @@ def _resolve_known_binary(env_var, command, patterns):
 
 
 def _resolve_go_command():
-    configured_path = os.getenv("RTRP_GO_PATH")
+    configured_path = os.getenv("STUDIO_GO_PATH")
     if configured_path:
         configured = _resolve_go_binary_path(configured_path)
         if configured:
@@ -465,7 +465,7 @@ def _resolve_go_command():
         return str(bundled), _go_runtime_env(bundled), None
 
     if not AUTO_INSTALL_GO:
-        return None, None, "Go toolchain not found. Set RTRP_GO_PATH or install Go."
+        return None, None, "Go toolchain not found. Set STUDIO_GO_PATH or install Go."
 
     installed, error = _install_bundled_go()
     if installed:
@@ -475,7 +475,7 @@ def _resolve_go_command():
 
 
 def _resolve_deno_command():
-    configured_path = os.getenv("RTRP_DENO_PATH")
+    configured_path = os.getenv("STUDIO_DENO_PATH")
     if configured_path:
         configured = Path(configured_path).expanduser()
         if configured.exists():
@@ -490,7 +490,7 @@ def _resolve_deno_command():
         return str(bundled_path), None
 
     if not AUTO_INSTALL_DENO:
-        return None, "Deno runtime not found. Set RTRP_DENO_PATH or install Deno."
+        return None, "Deno runtime not found. Set STUDIO_DENO_PATH or install Deno."
 
     return _install_bundled_deno()
 
@@ -571,7 +571,7 @@ def _install_bundled_go():
 
         request = urllib.request.Request(
             asset["url"],
-            headers={"User-Agent": "RTRP/1.0"},
+            headers={"User-Agent": "OptimizationStudio/1.0"},
         )
         with urllib.request.urlopen(request, timeout=RUNTIME_DOWNLOAD_TIMEOUT_SECONDS) as response:
             with open(temp_archive_path, "wb") as archive_file:
@@ -604,12 +604,12 @@ def _install_bundled_go():
     except urllib.error.URLError as exc:
         return None, (
             "Go toolchain was not installed locally, and automatic download failed. "
-            f"Install Go manually or set RTRP_GO_PATH. Details: {exc}"
+            f"Install Go manually or set STUDIO_GO_PATH. Details: {exc}"
         )
     except (OSError, zipfile.BadZipFile, tarfile.TarError, zlib.error, ValueError) as exc:
         return None, (
             "Bundled Go setup failed while preparing the runtime cache. "
-            f"Install Go manually or set RTRP_GO_PATH. Details: {exc}"
+            f"Install Go manually or set STUDIO_GO_PATH. Details: {exc}"
         )
     finally:
         _cleanup_go_install_temp_paths(temp_archive_path, temp_extract_dir)
@@ -623,7 +623,7 @@ def _fetch_go_release_asset():
     request = urllib.request.Request(
         GO_DOWNLOAD_API_URL,
         headers={
-            "User-Agent": "RTRP/1.0",
+            "User-Agent": "OptimizationStudio/1.0",
             "Accept": "application/json",
         },
     )
@@ -711,7 +711,7 @@ def _install_bundled_deno():
 
         request = urllib.request.Request(
             f"{DENO_RELEASE_BASE_URL}/{asset_name}",
-            headers={"User-Agent": "RTRP/1.0"},
+            headers={"User-Agent": "OptimizationStudio/1.0"},
         )
         with urllib.request.urlopen(request, timeout=RUNTIME_DOWNLOAD_TIMEOUT_SECONDS) as response:
             with open(temp_archive_path, "wb") as archive_file:
@@ -733,12 +733,12 @@ def _install_bundled_deno():
     except urllib.error.URLError as exc:
         return None, (
             "Deno runtime was not installed locally, and automatic Deno download failed. "
-            f"Install Deno manually or set RTRP_DENO_PATH. Details: {exc}"
+            f"Install Deno manually or set STUDIO_DENO_PATH. Details: {exc}"
         )
     except (OSError, zipfile.BadZipFile) as exc:
         return None, (
             "Bundled Deno setup failed while preparing the runtime cache. "
-            f"Install Deno manually or set RTRP_DENO_PATH. Details: {exc}"
+            f"Install Deno manually or set STUDIO_DENO_PATH. Details: {exc}"
         )
     finally:
         for temp_path in (temp_archive_path, temp_executable_path):
@@ -785,7 +785,7 @@ def _deno_run_command(deno_path):
 
 
 def _resolve_kotlin_compiler():
-    configured_path = os.getenv("RTRP_KOTLINC_PATH")
+    configured_path = os.getenv("STUDIO_KOTLINC_PATH")
     if configured_path:
         configured = Path(configured_path).expanduser()
         if configured.exists():
@@ -800,7 +800,7 @@ def _resolve_kotlin_compiler():
         return str(bundled), None
 
     if not AUTO_INSTALL_KOTLIN:
-        return None, "Kotlin compiler not found. Set RTRP_KOTLINC_PATH or install kotlinc."
+        return None, "Kotlin compiler not found. Set STUDIO_KOTLINC_PATH or install kotlinc."
 
     return _install_bundled_kotlin_compiler()
 
@@ -835,7 +835,7 @@ def _install_bundled_kotlin_compiler():
                 request = urllib.request.Request(
                     asset["browser_download_url"],
                     headers={
-                        "User-Agent": "RTRP/1.0",
+                        "User-Agent": "OptimizationStudio/1.0",
                         "Accept": "application/octet-stream",
                     },
                 )
@@ -863,22 +863,22 @@ def _install_bundled_kotlin_compiler():
         if isinstance(last_error, urllib.error.URLError):
             return None, (
                 "Kotlin compiler was not installed locally, and automatic download failed. "
-                f"Install kotlinc manually or set RTRP_KOTLINC_PATH. Details: {last_error}"
+                f"Install kotlinc manually or set STUDIO_KOTLINC_PATH. Details: {last_error}"
             )
 
         return None, (
             "Bundled Kotlin compiler setup failed while preparing the runtime cache. "
-            f"Install kotlinc manually or set RTRP_KOTLINC_PATH. Details: {last_error}"
+            f"Install kotlinc manually or set STUDIO_KOTLINC_PATH. Details: {last_error}"
         )
     except urllib.error.URLError as exc:
         return None, (
             "Kotlin compiler was not installed locally, and automatic download failed. "
-            f"Install kotlinc manually or set RTRP_KOTLINC_PATH. Details: {exc}"
+            f"Install kotlinc manually or set STUDIO_KOTLINC_PATH. Details: {exc}"
         )
     except (OSError, zipfile.BadZipFile, zlib.error, ValueError) as exc:
         return None, (
             "Bundled Kotlin compiler setup failed while preparing the runtime cache. "
-            f"Install kotlinc manually or set RTRP_KOTLINC_PATH. Details: {exc}"
+            f"Install kotlinc manually or set STUDIO_KOTLINC_PATH. Details: {exc}"
         )
     finally:
         _cleanup_kotlin_install_temp_paths(temp_zip_path, temp_extract_dir)
@@ -888,7 +888,7 @@ def _fetch_latest_kotlin_release():
     request = urllib.request.Request(
         KOTLIN_RELEASE_API_URL,
         headers={
-            "User-Agent": "RTRP/1.0",
+            "User-Agent": "OptimizationStudio/1.0",
             "Accept": "application/vnd.github+json",
         },
     )

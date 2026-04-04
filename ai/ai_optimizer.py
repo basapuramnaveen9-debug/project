@@ -936,8 +936,8 @@ def _validate_compilation_and_output(source_code, candidate_code, language):
     )
 
     try:
-        with tempfile.TemporaryDirectory(prefix="rtrp_variant_source_") as source_dir, tempfile.TemporaryDirectory(
-            prefix="rtrp_variant_candidate_"
+        with tempfile.TemporaryDirectory(prefix="variant_source_") as source_dir, tempfile.TemporaryDirectory(
+            prefix="variant_candidate_"
         ) as candidate_dir:
             source_artifacts = create_execution_artifacts(source_code, language, Path(source_dir), timeout_seconds)
             if not source_artifacts.get("ok"):
