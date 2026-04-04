@@ -2764,7 +2764,7 @@ li + li {
 
 @media (max-width: 720px) {
   .page-shell {
-    width: min(100vw - 18px, 100%);
+    width: min(calc(100vw - 18px), 100%);
     padding-top: 10px;
   }
 
@@ -2784,7 +2784,21 @@ li + li {
   }
 
   .metric-values {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .metric-value {
+    min-width: 0;
+  }
+
+  .metric-number,
+  #linesBeforeOut,
+  #linesAfterOut {
+    min-width: 0;
+    min-height: 40px;
+    font-size: clamp(1rem, 5vw, 1.28rem);
+    overflow-wrap: anywhere;
   }
 
   #codeInput {
@@ -2828,10 +2842,15 @@ li + li {
   }
 
   .hero-actions,
-  .block-head,
   .execution-row {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .stat-card .block-head {
+    flex-direction: row;
+    align-items: flex-start;
+    flex-wrap: wrap;
   }
 
   .workspace-menu-panel {
