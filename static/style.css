@@ -2763,6 +2763,10 @@ li + li {
 }
 
 @media (max-width: 720px) {
+  body {
+    overflow-x: auto;
+  }
+
   .page-shell {
     width: min(calc(100vw - 18px), 100%);
     padding-top: 10px;
@@ -2859,6 +2863,58 @@ li + li {
 
   .hero-panel {
     grid-template-columns: 1fr;
+  }
+
+  .page-shell:not(.variant-page-shell) {
+    width: max(1180px, calc(100vw - 18px));
+    min-width: 1180px;
+    padding-top: 24px;
+  }
+
+  .hero:not(.variant-hero) {
+    padding: 2px 12px 4px;
+    border-radius: 0 0 24px 24px;
+  }
+
+  .layout {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 20px;
+  }
+
+  .layout > .card,
+  .metrics-bar {
+    padding: 24px;
+    border-radius: 28px;
+  }
+
+  .hero:not(.variant-hero) h1 {
+    font-size: clamp(0.95rem, 2vw, 2rem);
+    white-space: nowrap;
+  }
+
+  .hero:not(.variant-hero) .hero-panel {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
+  }
+
+  .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 14px;
+  }
+
+  .workspace-actions {
+    flex-wrap: nowrap;
+  }
+
+  .workspace-actions button,
+  .execution-row button,
+  .ai-suggestions-actions .button-compact {
+    width: auto;
+  }
+
+  .execution-row {
+    flex-direction: row;
+    align-items: center;
   }
 }
 

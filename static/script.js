@@ -447,11 +447,7 @@ function isUsingOptimizedMonaco() {
 }
 
 function prefersFallbackEditor() {
-  if (typeof window.matchMedia !== "function") {
-    return false;
-  }
-
-  return window.matchMedia("(pointer: coarse)").matches;
+  return false;
 }
 
 function isWritingModeActive() {
