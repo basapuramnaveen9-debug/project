@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RTRP AI Optimization Lab</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="icon" href="{{ url_for('static', filename='favicon.svg', v=asset_version) }}" type="image/svg+xml" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=asset_version) }}" />
+</head>
+<body>
+  <div class="page-shell variant-page-shell">
+    <header class="hero variant-hero">
+      <div class="hero-copy">
+        <p class="hero-tag">AI OPTIMIZATION LAB</p>
+        <h1>AI CODE OPTIMIZATION</h1>
+        <div class="variant-toolbar">
+          <div class="field variant-count-control">
+            <label for="variantCountInput">Number Of Variants</label>
+            <input id="variantCountInput" class="variant-count-input" type="number" min="1" step="1" value="5" />
+          </div>
+          <button id="backToStudioBtn" class="alt button-compact" type="button">Back to Studio</button>
+          <button id="regenerateVariantsBtn" class="button-compact" type="button">Regenerate Variants</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="variant-layout">
+      <section class="card variant-source-card">
+        <div class="section-head results-head">
+          <div>
+            <p class="kicker">Source</p>
+            <h2>Original Program</h2>
+            <p id="variantSourceMeta" class="sub">Open this page from the main dashboard after entering code.</p>
+          </div>
+        </div>
+        <div class="code-panel variant-source-panel">
+          <pre id="sourceLineNumbers" class="line-numbers" aria-hidden="true">1</pre>
+          <pre id="sourceCodeOut" class="variant-code variant-source-code">Waiting for source code...</pre>
+        </div>
+      </section>
+
+      <section class="card variant-results-card">
+        <div class="section-head results-head">
+          <div>
+            <p class="kicker">Variants</p>
+            <h2>AI Optimized Versions</h2>
+            <p id="variantStatus" class="sub">Preparing AI optimization request...</p>
+          </div>
+        </div>
+
+        <div id="variantEmptyState" class="variant-empty hidden">
+          <h3>No code available</h3>
+          <p>Go back to the main studio, enter a program, and click AI Optimization.</p>
+        </div>
+
+        <div id="variantsGrid" class="variant-grid"></div>
+      </section>
+    </main>
+  </div>
+
+  <div id="variantFocusOverlay" class="variant-focus-overlay hidden" aria-hidden="true">
+    <div class="variant-focus-frame">
+      <div class="variant-focus-head">
+        <div>
+          <p id="variantFocusKicker" class="kicker">Variant</p>
+          <h2 id="variantFocusTitle">AI Optimized Variant</h2>
+        </div>
+        <div class="variant-focus-actions">
+          <button id="variantFocusCopyBtn" class="alt button-compact" type="button">Copy Code</button>
+          <button
+            id="variantFocusCloseBtn"
+            class="icon-toggle-btn variant-focus-close is-active"
+            type="button"
+            aria-label="Close full screen code view"
+            title="Close full screen code view"
+          >
+            <span class="icon-toggle-open" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M4 9V4h5M20 15v5h-5M15 4h5v5M9 20H4v-5" />
+                <path d="M9 4L4 9M15 20l5-5M20 9l-5-5M4 15l5 5" />
+              </svg>
+            </span>
+            <span class="icon-toggle-close" aria-hidden="true">
+              <svg viewBox="0 0 24 24" focusable="false">
+                <path d="M9 9H4V4M15 9h5V4M9 15H4v5M15 15h5v5" />
+                <path d="M4 4l5 5M20 4l-5 5M4 20l5-5M20 20l-5-5" />
+              </svg>
+            </span>
+          </button>
+        </div>
+      </div>
+
+      <p id="variantFocusSummary" class="variant-summary variant-focus-summary hidden"></p>
+
+      <div class="code-panel variant-focus-code-panel">
+        <pre id="variantFocusLineNumbers" class="line-numbers" aria-hidden="true">1</pre>
+        <pre id="variantFocusCode" class="variant-code variant-focus-code">Waiting for variant code...</pre>
+      </div>
+    </div>
+  </div>
+
+  <script src="{{ url_for('static', filename='ai-optimization.js', v=asset_version) }}"></script>
+</body>
+</html>

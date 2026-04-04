@@ -1,9 +1,6 @@
-def optimize_memory(code):
+from core.languages import normalize_language
 
-    optimized = code
 
-    if "malloc" in code and "free(" not in code:
-
-        optimized += "\n// WARNING: malloc used without free"
-
-    return optimized
+def optimize_memory(code, language="c"):
+    normalize_language(language)
+    return code

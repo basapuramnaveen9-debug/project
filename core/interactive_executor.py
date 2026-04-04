@@ -1,22 +1,18 @@
-import re
-import shutil
+import bisect
+import codecs
+import locale
+import os
 import subprocess
 import threading
 import time
 import uuid
 from pathlib import Path
 
+from core.language_runner import create_execution_artifacts
+from core.languages import normalize_language
+
 PROJECT_TEMP_ROOT = Path(__file__).resolve().parent.parent / ".codex_tmp"
 SESSION_TTL_SECONDS = 600
-
-
-def prepare_interactive_code(code):
-    main_match = re.search(r"\bint\s+main\s*\([^)]*\)\s*\{", code)
-    if not main_match:
-        return code
-
-    insertion = "\n    setvbuf(stdout, NULL, _IONBF, 0);\n"
-    return code[:main_match.end()] + insertion + code[main_match.end():]
 
 
 class ExecutionSession:
@@ -25,10 +21,14 @@ class ExecutionSession:
         self.process = process
         self.workspace = workspace
         self.created_at = time.time()
-        self.output = ""
+        self._chunks = []
+        self._chunk_offsets = []
+        self._length = 0
         self.returncode = None
         self.finished = False
         self._lock = threading.Lock()
+        self._encoding = locale.getpreferredencoding(False)
+        self._decoder = codecs.getincrementaldecoder(self._encoding)(errors="replace")
 
         self._stdout_thread = threading.Thread(target=self._read_stream, daemon=True)
         self._stdout_thread.start()
@@ -40,18 +40,27 @@ class ExecutionSession:
         if not text:
             return
         with self._lock:
-            self.output += text
+            self._chunks.append(text)
+            self._length += len(text)
+            self._chunk_offsets.append(self._length)
 
     def _read_stream(self):
         stream = self.process.stdout
         if stream is None:
             return
 
+        read = stream.read1 if hasattr(stream, "read1") else stream.read
         while True:
-            chunk = stream.read(1)
+            chunk = read(4096)
             if not chunk:
                 break
-            self._append_output(chunk)
+            text = self._decoder.decode(chunk)
+            if text:
+                self._append_output(text)
+
+        tail = self._decoder.decode(b"", final=True)
+        if tail:
+            self._append_output(tail)
 
     def _watch_process(self):
         self.returncode = self.process.wait()
@@ -64,12 +73,25 @@ class ExecutionSession:
 
     def poll(self, cursor=0):
         with self._lock:
-            output = self.output
+            total_len = self._length
+            if total_len == 0:
+                safe_cursor = 0
+                chunks = []
+            else:
+                safe_cursor = max(0, min(cursor, total_len))
+                if safe_cursor >= total_len:
+                    chunks = []
+                else:
+                    idx = bisect.bisect_right(self._chunk_offsets, safe_cursor)
+                    prev_len = self._chunk_offsets[idx - 1] if idx > 0 else 0
+                    chunks = self._chunks[idx:].copy()
+                    if chunks:
+                        chunks[0] = chunks[0][safe_cursor - prev_len:]
 
-        safe_cursor = max(0, min(cursor, len(output)))
+        output = "".join(chunks)
         return {
-            "output": output[safe_cursor:],
-            "cursor": len(output),
+            "output": output,
+            "cursor": total_len,
             "finished": self.finished,
             "exit_code": self.returncode,
         }
@@ -83,7 +105,8 @@ class ExecutionSession:
 
         payload = text if text.endswith("\n") else f"{text}\n"
         try:
-            self.process.stdin.write(payload)
+            data = payload.encode(self._encoding, errors="replace")
+            self.process.stdin.write(data)
             self.process.stdin.flush()
             return {"ok": True}
         except OSError as exc:
@@ -117,58 +140,46 @@ class ExecutionManager:
             for session_id in stale_ids:
                 self._sessions.pop(session_id, None)
 
-    def start_session(self, code, timeout_seconds=5):
+    def start_session(self, code, language="c", timeout_seconds=5):
         self._cleanup()
-
-        compiler = shutil.which("gcc") or shutil.which("clang")
-        if not compiler:
-            return {"ok": False, "error": "Compiler not found. Install gcc or clang to run code output."}
+        language = normalize_language(language)
 
         try:
             PROJECT_TEMP_ROOT.mkdir(exist_ok=True)
             temp_path = PROJECT_TEMP_ROOT / f"run_{uuid.uuid4().hex}"
             temp_path.mkdir()
-            source_path = temp_path / "program.c"
-            binary_path = temp_path / ("program.exe" if compiler.endswith(".exe") else "program")
-            source_path.write_text(prepare_interactive_code(code), encoding="utf-8")
         except OSError as exc:
             return {"ok": False, "error": f"Unable to create compiler workspace: {exc}"}
 
-        compile_cmd = [compiler, str(source_path), "-o", str(binary_path)]
-        try:
-            compile_result = subprocess.run(
-                compile_cmd,
-                capture_output=True,
-                text=True,
-                timeout=timeout_seconds,
-                check=False,
-            )
-        except subprocess.TimeoutExpired:
-            return {"ok": False, "error": "Compilation timed out."}
-
-        if compile_result.returncode != 0:
-            error_text = (compile_result.stderr or compile_result.stdout or "").strip()
-            return {"ok": False, "error": error_text or "Compilation failed with unknown error."}
+        artifacts = create_execution_artifacts(code, language, temp_path, timeout_seconds, interactive=True)
+        if not artifacts.get("ok"):
+            return artifacts
 
         try:
+            env = None
+            if artifacts.get("env"):
+                env = os.environ.copy()
+                env.update(artifacts["env"])
+
             process = subprocess.Popen(
-                [str(binary_path)],
+                artifacts["run_cmd"],
+                cwd=artifacts.get("cwd"),
+                env=env,
                 stdin=subprocess.PIPE,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.STDOUT,
-                text=True,
-                bufsize=1,
+                bufsize=-1,
             )
         except OSError as exc:
             if getattr(exc, "winerror", None) == 4551:
                 return {
                     "ok": False,
                     "error": (
-                        "Compilation succeeded, but Windows Application Control blocked the generated "
-                        "executable from running. Code execution is disabled by local policy on this machine."
+                        "Compilation or startup succeeded, but Windows Application Control blocked the generated "
+                        "program from running. Code execution is disabled by local policy on this machine."
                     ),
                 }
-            return {"ok": False, "error": f"Unable to run compiled program: {exc}"}
+            return {"ok": False, "error": f"Unable to run the selected program: {exc}"}
 
         session = ExecutionSession(process, temp_path)
         with self._lock:

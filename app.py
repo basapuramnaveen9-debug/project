@@ -1,14 +1,59 @@
 import os
 import time
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from pathlib import Path
 
-from core.compiler_pipeline import CompilerPipeline
-from core.interactive_executor import execution_manager
-from optimizer.algorithm_detector import detect_algorithm
-from optimizer.complexity import count_loops, estimate_complexity, estimate_space_complexity
-from ai.ai_optimizer import ai_optimize
+from flask import Flask, jsonify, render_template, request, send_from_directory
+
+BASE_DIR = Path(__file__).parent
+TRUTHY_ENV_VALUES = frozenset({"1", "true", "yes", "on"})
+DEFAULT_VARIANT_COUNT = 5
+NO_CACHE_HEADERS = {
+    "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+    "Pragma": "no-cache",
+    "Expires": "0",
+}
+
+
+def load_local_env(path=".env"):
+    env_path = Path(path)
+    if not env_path.is_absolute():
+        env_path = BASE_DIR / env_path
+
+    if not env_path.is_file():
+        return
+
+    with env_path.open(encoding="utf-8") as env_file:
+        for raw_line in env_file:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+
+            if line.startswith("export "):
+                line = line[7:].lstrip()
+
+            key, separator, value = line.partition("=")
+            if not separator:
+                continue
+
+            key = key.strip()
+            value = value.strip()
+
+            if value and value[0] == value[-1] and value[0] in {"'", '"'}:
+                value = value[1:-1]
+
+            os.environ.setdefault(key, value)
+
+
+load_local_env()
+
+from ai.ai_optimizer import ai_optimize, generate_ai_optimized_variants
 from ai.sample_generator import generate_sample_program
 from analytics.benchmark import estimate_runtime
+from core.compiler_pipeline import CompilerPipeline
+from core.interactive_executor import execution_manager
+from core.languages import normalize_language
+from optimizer.algorithm_detector import detect_algorithm
+from optimizer.complexity import count_loops, estimate_complexity, estimate_space_complexity
 
 app = Flask(__name__)
 app.config["TEMPLATES_AUTO_RELOAD"] = True
@@ -21,7 +66,7 @@ def env_flag(name, default=False):
     value = os.getenv(name)
     if value is None:
         return default
-    return value.strip().lower() in {"1", "true", "yes", "on"}
+    return value.strip().lower() in TRUTHY_ENV_VALUES
 
 
 def is_code_execution_enabled():
@@ -35,9 +80,41 @@ def count_code_lines(code):
     return sum(1 for line in code.splitlines() if line.strip())
 
 
+def get_request_payload():
+    return request.json or {}
+
+
+def current_asset_version():
+    return str(int(time.time()))
+
+
+def render_page(template_name):
+    return render_template(template_name, asset_version=current_asset_version())
+
+
+def analyze_code(code, language):
+    return {
+        "complexity": estimate_complexity(code, language),
+        "space_complexity": estimate_space_complexity(code, language),
+        "loops": count_loops(code, language),
+        "runtime": estimate_runtime(code, language),
+        "lines": count_code_lines(code),
+    }
+
+
+def json_result(result, error_status):
+    status_code = 200 if result.get("ok") else error_status
+    return jsonify(result), status_code
+
+
 @app.route("/")
 def index():
-    return render_template("index.html", asset_version=str(int(time.time())))
+    return render_page("index.html")
+
+
+@app.route("/ai-optimization")
+def ai_optimization_page():
+    return render_page("ai_optimization.html")
 
 
 @app.route("/healthz")
@@ -56,26 +133,65 @@ def favicon():
 
 @app.route("/sample", methods=["GET"])
 def sample():
-    return jsonify({"code": generate_sample_program()})
+    language = normalize_language(request.args.get("language"))
+    return jsonify({"code": generate_sample_program(language), "language": language})
+
+
+@app.route("/ai/variants", methods=["POST"])
+def ai_variants():
+    payload = get_request_payload()
+    code = payload.get("code", "")
+    language = normalize_language(payload.get("language"))
+
+    if not code.strip():
+        return jsonify({"ok": False, "error": "Code is required."}), 400
+
+    try:
+        count = int(payload.get("count", DEFAULT_VARIANT_COUNT))
+    except (TypeError, ValueError):
+        count = DEFAULT_VARIANT_COUNT
+
+    result = generate_ai_optimized_variants(code, language, max(count, 1))
+    return json_result(result, 502)
+
+
+@app.route("/ai/suggestions", methods=["POST"])
+def ai_suggestions():
+    payload = get_request_payload()
+    code = payload.get("code", "")
+    language = normalize_language(payload.get("language"))
+
+    if not code.strip():
+        return jsonify({"ok": False, "error": "Code is required.", "ai": []}), 400
+
+    suggestions = ai_optimize(code, language)
+    return jsonify({"ok": True, "language": language, "ai": suggestions})
 
 
 @app.route("/optimize", methods=["POST"])
 def optimize():
-    payload = request.json or {}
+    payload = get_request_payload()
     code = payload.get("code", "")
+    language = normalize_language(payload.get("language"))
 
-    optimized = pipeline.run(code)
+    optimized = pipeline.run(code, language)
+    before_metrics = analyze_code(code, language)
+    after_metrics = analyze_code(optimized, language)
 
     return jsonify({
+        "language": language,
         "optimized": optimized,
-        "ai": ai_optimize(code),
-        "algorithm": detect_algorithm(code),
-        "complexity": estimate_complexity(code),
-        "space_complexity": estimate_space_complexity(code),
-        "loops": count_loops(code),
-        "runtime": estimate_runtime(code),
-        "lines_before": count_code_lines(code),
-        "lines_after": count_code_lines(optimized),
+        "algorithm": detect_algorithm(code, language),
+        "complexity": before_metrics["complexity"],
+        "complexity_after": after_metrics["complexity"],
+        "space_complexity": before_metrics["space_complexity"],
+        "space_complexity_after": after_metrics["space_complexity"],
+        "loops": before_metrics["loops"],
+        "loops_after": after_metrics["loops"],
+        "runtime": before_metrics["runtime"],
+        "runtime_after": after_metrics["runtime"],
+        "lines_before": before_metrics["lines"],
+        "lines_after": after_metrics["lines"],
     })
 
 
@@ -90,11 +206,11 @@ def execute_start():
             ),
         }), 403
 
-    payload = request.json or {}
+    payload = get_request_payload()
     code = payload.get("code", "")
-    result = execution_manager.start_session(code)
-    status_code = 200 if result.get("ok") else 400
-    return jsonify(result), status_code
+    language = normalize_language(payload.get("language"))
+    result = execution_manager.start_session(code, language)
+    return json_result(result, 400)
 
 
 @app.route("/execute/<session_id>/poll", methods=["GET"])
@@ -119,30 +235,27 @@ def execute_input(session_id):
     if not session:
         return jsonify({"ok": False, "error": "Execution session not found."}), 404
 
-    payload = request.json or {}
+    payload = get_request_payload()
     text = payload.get("input", "")
     result = session.send_input(text)
-    status_code = 200 if result.get("ok") else 400
-    return jsonify(result), status_code
+    return json_result(result, 400)
 
 
 @app.route("/execute/<session_id>/stop", methods=["POST"])
 def execute_stop(session_id):
     result = execution_manager.stop_session(session_id)
-    status_code = 200 if result.get("ok") else 404
-    return jsonify(result), status_code
+    return json_result(result, 404)
 
 
 @app.after_request
 def disable_cache(response):
-    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
-    response.headers["Pragma"] = "no-cache"
-    response.headers["Expires"] = "0"
+    response.headers.update(NO_CACHE_HEADERS)
     return response
 
 
 if __name__ == "__main__":
     debug = env_flag("FLASK_DEBUG", default=True)
+    threaded = env_flag("FLASK_THREADED", default=True)
     host = os.getenv("HOST", "127.0.0.1")
     port = int(os.getenv("PORT", "5000"))
-    app.run(host=host, port=port, debug=debug)
+    app.run(host=host, port=port, debug=debug, threaded=threaded)

@@ -1,6 +1,8 @@
 import ast
 import re
 
+from core.languages import normalize_language
+
 
 DECL_PATTERN = re.compile(
     r"^(\s*)((?:(?:const\s+)?(?:int|long|short)\s+))([A-Za-z_]\w*)\s*=\s*([^;]+)\s*;\s*$"
@@ -13,6 +15,10 @@ ASSIGN_PATTERN = re.compile(
 )
 IDENTIFIER_PATTERN = re.compile(r"\b([A-Za-z_]\w*)\b")
 KEYWORD_TOKENS = {"int", "long", "short", "const"}
+PY_ASSIGN_PATTERN = re.compile(r"^(\s*)([A-Za-z_]\w*)\s*=\s*(.+?)\s*$")
+PY_BLOCK_PREFIX_PATTERN = re.compile(
+    r"^\s*(if|elif|else|for|while|def|class|with|try|except|finally|return|raise|yield|break|continue|pass|import|from|match|case)\b"
+)
 
 
 class _ConstExprEvaluator(ast.NodeVisitor):
@@ -126,7 +132,7 @@ def _simplify_statement(line, constants):
     return line
 
 
-def fold_constants(code):
+def _fold_c_like_constants(code):
     constants = {}
     items = []
 
@@ -279,3 +285,52 @@ def fold_constants(code):
         filtered = [last_constant_decl_text] + non_decl_lines
 
     return "\n".join(filtered)
+
+
+def _fold_python_constants(code):
+    constants = {}
+    optimized_lines = []
+
+    for line in code.splitlines():
+        if not line.strip():
+            optimized_lines.append(line)
+            continue
+
+        if PY_BLOCK_PREFIX_PATTERN.match(line):
+            optimized_lines.append(line)
+            continue
+
+        match = PY_ASSIGN_PATTERN.match(line)
+        if not match:
+            optimized_lines.append(line)
+            continue
+
+        indent = match.group(1) or ""
+        var_name = match.group(2)
+        rhs = match.group(3).strip()
+        rhs_code = rhs.partition("#")[0].strip()
+
+        if not rhs_code or "," in rhs_code:
+            constants.pop(var_name, None)
+            optimized_lines.append(line)
+            continue
+
+        folded_value = _try_eval_constant_expr(rhs_code, constants)
+        if folded_value is None:
+            constants.pop(var_name, None)
+            optimized_lines.append(line)
+            continue
+
+        constants[var_name] = folded_value
+        optimized_lines.append(f"{indent}{var_name} = {folded_value}")
+
+    return "\n".join(optimized_lines)
+
+
+def fold_constants(code, language="c"):
+    language = normalize_language(language)
+
+    if language == "python":
+        return _fold_python_constants(code)
+
+    return _fold_c_like_constants(code)

@@ -6,7 +6,7 @@
   <title>RTRP Compiler Studio</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="icon" href="{{ url_for('static', filename='favicon.svg', v=asset_version) }}" type="image/svg+xml" />
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css', v=asset_version) }}" />
 </head>
@@ -30,6 +30,19 @@
             <strong>Time, space, loops, runtime</strong>
           </div>
         </div>
+
+        <div class="hero-toolbar">
+          <div class="field hero-language-field">
+            <label for="languageSelect">Select Language</label>
+            <select id="languageSelect">
+              <option value="c">C</option>
+              <option value="cpp">C++</option>
+              <option value="java">Java</option>
+              <option value="python">Python</option>
+              <option value="more">More</option>
+            </select>
+          </div>
+        </div>
       </div>
     </header>
 
@@ -39,18 +52,69 @@
           <div>
             <p class="kicker">Workspace</p>
             <h2>Code Optimization Workspace</h2>
-            <p class="sub">Paste your C code, then run analysis for optimization hints, runtime diagnostics, and complexity estimates.</p>
+          </div>
+          <div class="workspace-menu-anchor">
+            <button
+              id="fileMenuBtn"
+              class="menu-trigger-btn"
+              type="button"
+              aria-haspopup="true"
+              aria-expanded="false"
+              aria-controls="fileMenuPanel"
+              aria-label="Open file menu"
+              title="Open file menu"
+            >
+              <span class="menu-trigger-line" aria-hidden="true"></span>
+              <span class="menu-trigger-line" aria-hidden="true"></span>
+              <span class="menu-trigger-line" aria-hidden="true"></span>
+            </button>
+            <div id="fileMenuPanel" class="workspace-menu-panel hidden" role="menu" aria-label="File options">
+              <div class="workspace-menu-actions">
+                <button id="openFileBtn" class="menu-action-btn" type="button" role="menuitem">Open File</button>
+                <button id="saveSourceBtn" class="menu-action-btn" type="button" role="menuitem">Save Source</button>
+                <button id="saveOptimizedBtn" class="menu-action-btn" type="button" role="menuitem">Save Optimized</button>
+                <input id="sourceFileInput" class="hidden" type="file" accept=".c,.cpp,.cc,.cxx,.java,.py,.js,.ts,.go,.rs,.cs,.php,.rb,.kt" />
+              </div>
+            </div>
           </div>
         </div>
 
-        <label for="codeInput">Input Code</label>
-        <textarea id="codeInput" placeholder="Paste code here..."></textarea>
+        <label id="codeInputLabel" for="codeInput">Input Code</label>
+        <div class="code-panel input-panel">
+          <div id="codeEditorShell" class="editor-shell">
+            <div id="codeEditor" class="code-editor" aria-labelledby="codeInputLabel"></div>
+            <div id="codeEditorPlaceholder" class="editor-placeholder" aria-hidden="true">Paste code here...</div>
+            <textarea id="codeInput" class="code-input-fallback" placeholder="Paste code here..." spellcheck="false"></textarea>
+            <button
+              id="toggleFocusModeBtn"
+              class="icon-toggle-btn"
+              type="button"
+              aria-pressed="false"
+              aria-label="Open full screen editor"
+              title="Open full screen editor"
+            >
+              <span class="icon-toggle-open" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M4 9V4h5M20 15v5h-5M15 4h5v5M9 20H4v-5" />
+                  <path d="M9 4L4 9M15 20l5-5M20 9l-5-5M4 15l5 5" />
+                </svg>
+              </span>
+              <span class="icon-toggle-close" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M9 9H4V4M15 9h5V4M9 15H4v5M15 15h5v5" />
+                  <path d="M4 4l5 5M20 4l-5 5M4 20l5-5M20 20l-5-5" />
+                </svg>
+              </span>
+            </button>
+          </div>
+        </div>
 
         <div class="row workspace-actions">
           <button id="optimizeBtn" type="button">Run Analysis</button>
           <button id="sampleBtn" class="alt" type="button">Load Sample</button>
         </div>
 
+        <p id="focusModeHint" class="status workspace-status focus-mode-hint hidden">Press Esc or tap the fullscreen icon again to leave writing mode.</p>
         <p id="status" class="status workspace-status"></p>
       </section>
 
@@ -62,25 +126,73 @@
           </div>
         </div>
 
-        <article class="block block-feature wide">
+        <article id="optimizedResultBlock" class="block block-feature wide">
           <div class="block-head">
             <h3>Optimized Code</h3>
             <span class="pill pill-blue">Transformed Output</span>
           </div>
-          <pre id="optimizedOut">Results will appear here.</pre>
+          <div id="optimizedPanel" class="code-panel output-panel matched-output-panel">
+            <div id="optimizedCodeEditor" class="code-editor optimized-code-editor" aria-label="Optimized code viewer"></div>
+            <pre id="optimizedLineNumbers" class="line-numbers" aria-hidden="true">1</pre>
+            <pre id="optimizedOut" class="code-output matched-output-content">Results will appear here.</pre>
+            <button
+              id="toggleOptimizedFocusBtn"
+              class="icon-toggle-btn"
+              type="button"
+              aria-pressed="false"
+              aria-label="Open full screen optimized code"
+              title="Open full screen optimized code"
+            >
+              <span class="icon-toggle-open" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M4 9V4h5M20 15v5h-5M15 4h5v5M9 20H4v-5" />
+                  <path d="M9 4L4 9M15 20l5-5M20 9l-5-5M4 15l5 5" />
+                </svg>
+              </span>
+              <span class="icon-toggle-close" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M9 9H4V4M15 9h5V4M9 15H4v5M15 15h5v5" />
+                  <path d="M4 4l5 5M20 4l-5 5M4 20l5-5M20 20l-5-5" />
+                </svg>
+              </span>
+            </button>
+          </div>
         </article>
 
-        <article class="block block-feature wide">
+        <article id="executionResultBlock" class="block block-feature wide">
           <div class="block-head">
             <h3>Program Output / Errors</h3>
             <span class="pill pill-warm">Execution Log</span>
           </div>
-          <textarea id="executionOut" class="execution-console" spellcheck="false" placeholder="Run analysis to see compiler output." readonly></textarea>
+          <div id="executionShell" class="execution-shell">
+            <textarea id="executionOut" class="execution-console" spellcheck="false" placeholder="Run analysis to see compiler output." readonly></textarea>
+            <button
+              id="toggleExecutionFocusBtn"
+              class="icon-toggle-btn"
+              type="button"
+              aria-pressed="false"
+              aria-label="Open full screen execution log"
+              title="Open full screen execution log"
+            >
+              <span class="icon-toggle-open" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M4 9V4h5M20 15v5h-5M15 4h5v5M9 20H4v-5" />
+                  <path d="M9 4L4 9M15 20l5-5M20 9l-5-5M4 15l5 5" />
+                </svg>
+              </span>
+              <span class="icon-toggle-close" aria-hidden="true">
+                <svg viewBox="0 0 24 24" focusable="false">
+                  <path d="M9 9H4V4M15 9h5V4M9 15H4v5M15 15h5v5" />
+                  <path d="M4 4l5 5M20 4l-5 5M4 20l5-5M20 20l-5-5" />
+                </svg>
+              </span>
+            </button>
+          </div>
           <div id="executionControls" class="execution-controls hidden">
             <div class="execution-row execution-row-compact">
               <button id="stopBtn" class="alt" type="button">Stop Program</button>
             </div>
-            <p class="execution-help">Type directly inside the console above and press Enter when your C program asks for input.</p>
+            <p id="executionHelp" class="execution-help">Type directly inside the console above and press Enter when your program asks for input.</p>
           </div>
         </article>
       </section>
@@ -101,6 +213,9 @@
             <span class="pill">Hints</span>
           </div>
           <ul id="aiOut"></ul>
+          <div class="ai-suggestions-actions hidden">
+            <button id="aiOptimizePageBtn" class="button-compact" type="button">AI Optimization</button>
+          </div>
         </article>
         <article class="block stat-card accent-violet">
           <div class="block-head">
@@ -114,28 +229,104 @@
             <h3>Complexity</h3>
             <span class="pill">Time</span>
           </div>
-          <p id="complexityOut">-</p>
+          <div class="metric-split">
+            <div class="metric-values">
+              <div class="metric-value">
+                <span class="metric-label">Before</span>
+                <strong id="complexityBeforeOut" class="metric-number">-</strong>
+              </div>
+              <div class="metric-value">
+                <span class="metric-label">After</span>
+                <strong id="complexityAfterOut" class="metric-number">-</strong>
+              </div>
+            </div>
+            <div class="metric-bar" aria-hidden="true">
+              <div class="metric-half before">
+                <div class="metric-fill" id="complexityBeforeBar"></div>
+              </div>
+              <div class="metric-half after">
+                <div class="metric-fill" id="complexityAfterBar"></div>
+              </div>
+            </div>
+          </div>
         </article>
         <article class="block stat-card accent-gold">
           <div class="block-head">
             <h3>Space Complexity</h3>
             <span class="pill">Memory</span>
           </div>
-          <p id="spaceComplexityOut">-</p>
+          <div class="metric-split">
+            <div class="metric-values">
+              <div class="metric-value">
+                <span class="metric-label">Before</span>
+                <strong id="spaceBeforeOut" class="metric-number">-</strong>
+              </div>
+              <div class="metric-value">
+                <span class="metric-label">After</span>
+                <strong id="spaceAfterOut" class="metric-number">-</strong>
+              </div>
+            </div>
+            <div class="metric-bar" aria-hidden="true">
+              <div class="metric-half before">
+                <div class="metric-fill" id="spaceBeforeBar"></div>
+              </div>
+              <div class="metric-half after">
+                <div class="metric-fill" id="spaceAfterBar"></div>
+              </div>
+            </div>
+          </div>
         </article>
         <article class="block stat-card accent-pink">
           <div class="block-head">
             <h3>Loops</h3>
             <span class="pill">Structure</span>
           </div>
-          <p id="loopsOut">-</p>
+          <div class="metric-split">
+            <div class="metric-values">
+              <div class="metric-value">
+                <span class="metric-label">Before</span>
+                <strong id="loopsBeforeOut" class="metric-number">-</strong>
+              </div>
+              <div class="metric-value">
+                <span class="metric-label">After</span>
+                <strong id="loopsAfterOut" class="metric-number">-</strong>
+              </div>
+            </div>
+            <div class="metric-bar" aria-hidden="true">
+              <div class="metric-half before">
+                <div class="metric-fill" id="loopsBeforeBar"></div>
+              </div>
+              <div class="metric-half after">
+                <div class="metric-fill" id="loopsAfterBar"></div>
+              </div>
+            </div>
+          </div>
         </article>
         <article class="block stat-card accent-cyan">
           <div class="block-head">
             <h3>Runtime</h3>
             <span class="pill">Estimate</span>
           </div>
-          <p id="runtimeOut">-</p>
+          <div class="metric-split">
+            <div class="metric-values">
+              <div class="metric-value">
+                <span class="metric-label">Before</span>
+                <strong id="runtimeBeforeOut" class="metric-number">-</strong>
+              </div>
+              <div class="metric-value">
+                <span class="metric-label">After</span>
+                <strong id="runtimeAfterOut" class="metric-number">-</strong>
+              </div>
+            </div>
+            <div class="metric-bar" aria-hidden="true">
+              <div class="metric-half before">
+                <div class="metric-fill" id="runtimeBeforeBar"></div>
+              </div>
+              <div class="metric-half after">
+                <div class="metric-fill" id="runtimeAfterBar"></div>
+              </div>
+            </div>
+          </div>
         </article>
         <article class="block stat-card accent-blue">
           <div class="block-head">
