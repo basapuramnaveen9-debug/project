@@ -2297,9 +2297,10 @@ ul {
 }
 
 .matched-output-panel {
+  --matched-output-panel-min-height: 220px;
   display: block;
-  height: var(--matched-output-panel-height, 220px);
-  min-height: var(--matched-output-panel-height, 220px);
+  height: max(var(--matched-output-panel-height, 220px), var(--matched-output-panel-min-height));
+  min-height: var(--matched-output-panel-min-height);
   border: 0;
   border-radius: 0;
   background: transparent;
@@ -2313,8 +2314,8 @@ ul {
 .matched-output-panel .matched-output-content,
 .matched-output-panel .optimized-code-editor {
   width: 100%;
-  height: var(--matched-output-panel-height, 220px);
-  min-height: var(--matched-output-panel-height, 220px);
+  height: max(var(--matched-output-panel-height, 220px), var(--matched-output-panel-min-height));
+  min-height: var(--matched-output-panel-min-height);
   border: 1px solid rgba(255, 255, 255, 0.07);
   border-radius: 16px;
   background: rgba(5, 10, 20, 0.58);
@@ -2915,6 +2916,25 @@ li + li {
   .execution-row {
     flex-direction: row;
     align-items: center;
+  }
+
+  .output {
+    gap: 18px;
+  }
+
+  .output .block-feature {
+    min-height: 320px;
+  }
+
+  .matched-output-panel {
+    --matched-output-panel-min-height: 240px;
+  }
+
+  .matched-output-panel .matched-output-content,
+  .matched-output-panel .optimized-code-editor,
+  .execution-shell,
+  .execution-console {
+    min-height: 240px;
   }
 }
 
