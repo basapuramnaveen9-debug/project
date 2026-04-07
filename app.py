@@ -20,7 +20,7 @@ from dotenv import load_dotenv
 
 load_dotenv(dotenv_path=BASE_DIR / ".env")
 
-from ai.ai_optimizer import ai_optimize, generate_ai_optimized_variants
+from ai.ai_optimizer import ai_optimize, generate_ai_optimized_variants, resolve_ai_runtime_settings
 from ai.sample_generator import generate_sample_program
 from analytics.benchmark import estimate_runtime
 from core.compiler_pipeline import CompilerPipeline
@@ -51,7 +51,7 @@ def is_code_execution_enabled():
 
 
 def is_ai_configured():
-    return bool((os.getenv("OPENAI_API_KEY") or "").strip())
+    return bool(resolve_ai_runtime_settings()["api_key"])
 
 
 def count_code_lines(code):
@@ -145,11 +145,18 @@ def ai_optimization_page():
 
 @app.route("/healthz")
 def healthz():
+    ai_config = resolve_ai_runtime_settings()
     return jsonify({
         "ok": True,
         "service": "Optimization Studio",
         "code_execution": is_code_execution_enabled(),
-        "ai_configured": is_ai_configured(),
+        "ai_configured": bool(ai_config["api_key"]),
+        "ai_provider": ai_config["provider"],
+        "ai_api_key_env": ai_config["api_key_env"],
+        "ai_base_url": ai_config["base_url"],
+        "ai_base_url_source": ai_config["base_url_env"],
+        "ai_model": ai_config["model"],
+        "ai_model_source": ai_config["model_env"],
     })
 
 

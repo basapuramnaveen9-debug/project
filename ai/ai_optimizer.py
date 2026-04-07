@@ -110,6 +110,26 @@ DEFAULT_MAX_SUGGESTIONS = 6
 DEFAULT_VARIANTS_TIMEOUT_SECONDS = 12.0
 DEFAULT_VARIANT_VALIDATION_TIMEOUT_SECONDS = 2.5
 SUGGESTION_CACHE = {}
+AI_API_KEY_ENV_NAMES = (
+    "OPENAI_API_KEY",
+    "NVIDIA_API_KEY",
+    "NIM_API_KEY",
+    "AI_API_KEY",
+)
+AI_BASE_URL_ENV_NAMES = (
+    "OPENAI_BASE_URL",
+    "NVIDIA_BASE_URL",
+    "AI_BASE_URL",
+)
+AI_MODEL_ENV_NAMES = (
+    "OPENAI_MODEL",
+    "NVIDIA_MODEL",
+    "AI_MODEL",
+)
+OPENAI_DEFAULT_BASE_URL = "https://api.openai.com/v1"
+OPENAI_DEFAULT_MODEL = "gpt-4o-mini"
+NVIDIA_DEFAULT_BASE_URL = "https://integrate.api.nvidia.com/v1"
+NVIDIA_DEFAULT_MODEL = "openai/gpt-oss-20b"
 
 
 def _suggestion_cache_key(code, language):
@@ -330,7 +350,11 @@ def _public_variant_warning(error):
     detail = str(error or "").strip()
     normalized = detail.casefold()
 
-    if "openai_api_key" in normalized or ("api key" in normalized and "not set" in normalized):
+    if (
+        "openai_api_key" in normalized
+        or ("api key" in normalized and "not set" in normalized)
+        or "no ai api key was found" in normalized
+    ):
         return "AI provider is not configured on this deployment. Showing locally optimized variants instead."
 
     if "not installed" in normalized or "could not be imported" in normalized:
@@ -517,6 +541,59 @@ def _heuristic_suggestions(code, language="c"):
     return suggestions
 
 
+def _clean_env_value(value):
+    cleaned = str(value or "").strip()
+    if len(cleaned) >= 2 and cleaned[:1] == cleaned[-1:] and cleaned[:1] in {"'", '"'}:
+        cleaned = cleaned[1:-1].strip()
+    return cleaned
+
+
+def _first_configured_env(names):
+    for name in names:
+        value = _clean_env_value(os.getenv(name))
+        if value:
+            return value, name
+    return "", ""
+
+
+def _is_nvidia_base_url(base_url):
+    return "nvidia.com" in str(base_url or "").casefold()
+
+
+def resolve_ai_runtime_settings():
+    api_key, api_key_env = _first_configured_env(AI_API_KEY_ENV_NAMES)
+    base_url, base_url_env = _first_configured_env(AI_BASE_URL_ENV_NAMES)
+    model, model_env = _first_configured_env(AI_MODEL_ENV_NAMES)
+
+    provider = "nvidia" if api_key_env in {"NVIDIA_API_KEY", "NIM_API_KEY"} or _is_nvidia_base_url(base_url) else "openai"
+
+    if not base_url:
+        if provider == "nvidia":
+            base_url = NVIDIA_DEFAULT_BASE_URL
+            base_url_env = "(default:nvidia)"
+        else:
+            base_url = OPENAI_DEFAULT_BASE_URL
+            base_url_env = "(default:openai)"
+
+    if not model:
+        if _is_nvidia_base_url(base_url):
+            model = NVIDIA_DEFAULT_MODEL
+            model_env = "(default:nvidia)"
+        else:
+            model = OPENAI_DEFAULT_MODEL
+            model_env = "(default:openai)"
+
+    return {
+        "api_key": api_key,
+        "api_key_env": api_key_env,
+        "base_url": base_url.rstrip("/"),
+        "base_url_env": base_url_env,
+        "model": model,
+        "model_env": model_env,
+        "provider": "nvidia" if _is_nvidia_base_url(base_url) else provider,
+    }
+
+
 def _openai_suggestions(code, language="c", runtime=None):
     runtime = runtime or _get_openai_runtime()[0]
     if not runtime:
@@ -566,9 +643,11 @@ def _openai_suggestions(code, language="c", runtime=None):
 
 
 def _get_openai_runtime():
-    api_key = os.getenv("OPENAI_API_KEY")
+    config = resolve_ai_runtime_settings()
+    api_key = config["api_key"]
     if not api_key:
-        return None, "Error: OPENAI_API_KEY is not set in the environment or .env file."
+        env_names = ", ".join(AI_API_KEY_ENV_NAMES)
+        return None, f"Error: No AI API key was found. Set one of these environment variables: {env_names}."
 
     try:
         from openai import OpenAI
@@ -584,17 +663,21 @@ def _get_openai_runtime():
             f"Python environment ({sys.executable}): {exc}"
         )
 
-    model = os.getenv("OPENAI_MODEL", "openai/gpt-oss-20b")
-    base_url = os.getenv("OPENAI_BASE_URL", "https://integrate.api.nvidia.com/v1").rstrip("/")
+    model = config["model"]
+    base_url = config["base_url"]
     timeout_seconds = float(os.getenv("OPENAI_TIMEOUT_SECONDS", "30"))
     suggestions_timeout_seconds = float(os.getenv("OPENAI_SUGGESTIONS_TIMEOUT_SECONDS", "3.5"))
-    suggestions_model = os.getenv("OPENAI_SUGGESTIONS_MODEL", model).strip() or model
+    suggestions_model = _clean_env_value(os.getenv("OPENAI_SUGGESTIONS_MODEL", model)) or model
     max_suggestions = max(1, int(os.getenv("OPENAI_MAX_SUGGESTIONS", str(DEFAULT_MAX_SUGGESTIONS))))
 
     runtime = {
         "api_key": api_key,
+        "api_key_env": config["api_key_env"],
         "model": model,
+        "model_env": config["model_env"],
         "base_url": base_url,
+        "base_url_env": config["base_url_env"],
+        "provider": config["provider"],
         "timeout_seconds": timeout_seconds,
         "suggestions_timeout_seconds": suggestions_timeout_seconds,
         "suggestions_model": suggestions_model,

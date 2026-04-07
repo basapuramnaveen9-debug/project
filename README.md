@@ -65,6 +65,15 @@ FLASK_THREADED=true
 
 Keep `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL` aligned with the provider you actually use. If local development works because of `.env`, copy the same values into your deployed service's environment-variable or secret settings too.
 
+The app also accepts these deployment aliases for the API key:
+
+- `NVIDIA_API_KEY`
+- `NIM_API_KEY`
+- `AI_API_KEY`
+
+If only `OPENAI_API_KEY` is present, the app defaults to `https://api.openai.com/v1` and `gpt-4o-mini`.
+If only `NVIDIA_API_KEY` or `NIM_API_KEY` is present, the app defaults to `https://integrate.api.nvidia.com/v1` and `openai/gpt-oss-20b`.
+
 ### 4. Run the app
 
 ```powershell
@@ -148,7 +157,9 @@ At minimum, set these variables in your host dashboard or secret manager and red
 - `OPENAI_BASE_URL`
 - `OPENAI_MODEL`
 
-You can verify the deployment state at `/healthz`, which now reports `ai_configured`.
+You can also use `NVIDIA_API_KEY`, `NIM_API_KEY`, or `AI_API_KEY` for the API key if that matches your provider setup better.
+
+You can verify the deployment state at `/healthz`, which reports `ai_configured` plus the resolved key source, base URL, and model.
 
 ## Safety
 
