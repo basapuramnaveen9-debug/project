@@ -52,8 +52,9 @@ Copy `.env.example` to `.env` and set your values.
 Example:
 
 ```dotenv
-OPENAI_API_KEY=your_api_key_here
-OPENAI_MODEL=gpt-4o-mini
+OPENAI_API_KEY=your_provider_api_key_here
+OPENAI_BASE_URL=https://api.openai.com/v1
+OPENAI_MODEL=your-model-id
 OPENAI_TIMEOUT_SECONDS=15
 OPENAI_SUGGESTIONS_TIMEOUT_SECONDS=3.5
 OPENAI_VARIANTS_TIMEOUT_SECONDS=12
@@ -61,6 +62,8 @@ OPENAI_MAX_SUGGESTIONS=6
 AI_SUGGESTION_CACHE_TTL_SECONDS=900
 FLASK_THREADED=true
 ```
+
+Keep `OPENAI_API_KEY`, `OPENAI_BASE_URL`, and `OPENAI_MODEL` aligned with the provider you actually use. If local development works because of `.env`, copy the same values into your deployed service's environment-variable or secret settings too.
 
 ### 4. Run the app
 
@@ -123,6 +126,29 @@ With code execution enabled:
 ```bash
 docker run --rm -p 8000:8000 -e PORT=8000 -e ENABLE_CODE_EXECUTION=true code-optimization-studio
 ```
+
+With AI features configured:
+
+```bash
+docker run --rm -p 8000:8000 \
+  -e PORT=8000 \
+  -e OPENAI_API_KEY=your_provider_api_key_here \
+  -e OPENAI_BASE_URL=https://api.openai.com/v1 \
+  -e OPENAI_MODEL=your-model-id \
+  code-optimization-studio
+```
+
+## Deployment Notes
+
+Your local `.env` is ignored by Git and will usually not exist in a Git-based deployment. If the AI Optimization Lab shows a warning about `OPENAI_API_KEY` after deployment, the service is running but the remote environment is missing the AI provider settings.
+
+At minimum, set these variables in your host dashboard or secret manager and redeploy:
+
+- `OPENAI_API_KEY`
+- `OPENAI_BASE_URL`
+- `OPENAI_MODEL`
+
+You can verify the deployment state at `/healthz`, which now reports `ai_configured`.
 
 ## Safety
 

@@ -3,4 +3,4 @@ gunicorn
 numpy
 scikit-learn
 openai
-
+python-dotenv

@@ -1,4 +1,4 @@
-import os
+﻿import os
 import subprocess
 import time
 from functools import lru_cache
@@ -16,37 +16,9 @@ NO_CACHE_HEADERS = {
 }
 
 
-def load_local_env(path=".env"):
-    env_path = Path(path)
-    if not env_path.is_absolute():
-        env_path = BASE_DIR / env_path
+from dotenv import load_dotenv
 
-    if not env_path.is_file():
-        return
-
-    with env_path.open(encoding="utf-8") as env_file:
-        for raw_line in env_file:
-            line = raw_line.strip()
-            if not line or line.startswith("#"):
-                continue
-
-            if line.startswith("export "):
-                line = line[7:].lstrip()
-
-            key, separator, value = line.partition("=")
-            if not separator:
-                continue
-
-            key = key.strip()
-            value = value.strip()
-
-            if value and value[0] == value[-1] and value[0] in {"'", '"'}:
-                value = value[1:-1]
-
-            os.environ.setdefault(key, value)
-
-
-load_local_env()
+load_dotenv(dotenv_path=BASE_DIR / ".env")
 
 from ai.ai_optimizer import ai_optimize, generate_ai_optimized_variants
 from ai.sample_generator import generate_sample_program
@@ -76,6 +48,10 @@ def is_code_execution_enabled():
     if configured is not None:
         return env_flag("ENABLE_CODE_EXECUTION")
     return app.debug
+
+
+def is_ai_configured():
+    return bool((os.getenv("OPENAI_API_KEY") or "").strip())
 
 
 def count_code_lines(code):
@@ -169,7 +145,12 @@ def ai_optimization_page():
 
 @app.route("/healthz")
 def healthz():
-    return jsonify({"ok": True, "service": "Optimization Studio", "code_execution": is_code_execution_enabled()})
+    return jsonify({
+        "ok": True,
+        "service": "Optimization Studio",
+        "code_execution": is_code_execution_enabled(),
+        "ai_configured": is_ai_configured(),
+    })
 
 
 @app.route("/favicon.ico")
