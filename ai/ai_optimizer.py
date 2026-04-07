@@ -229,11 +229,12 @@ def generate_ai_optimized_variants(code, language="c", count=5):
     fallback_variants = _generate_local_optimized_variants(code, normalized_language, requested_count)
     runtime, error = _get_openai_runtime()
     if error:
+        _log_ai_variants_issue("runtime unavailable", error)
         return _build_variant_response(
             code,
             normalized_language,
             fallback_variants,
-            warning=f"{error} Showing locally optimized variants instead.",
+            warning=_public_variant_warning(error),
         )
 
     system_prompt = (
@@ -295,11 +296,12 @@ def generate_ai_optimized_variants(code, language="c", count=5):
         client=client,
     )
     if error:
+        _log_ai_variants_issue("remote request failed", error)
         return _build_variant_response(
             code,
             normalized_language,
             fallback_variants,
-            warning=f"Remote AI variant generation was unavailable ({error}). Showing locally optimized variants instead.",
+            warning=_public_variant_warning(error),
         )
 
     variants = _filter_output_preserving_variants(code, _parse_code_variants(text), normalized_language)
@@ -316,6 +318,28 @@ def generate_ai_optimized_variants(code, language="c", count=5):
 
 def _variant_timeout_seconds():
     return max(1.0, float(os.getenv("OPENAI_VARIANTS_TIMEOUT_SECONDS", str(DEFAULT_VARIANTS_TIMEOUT_SECONDS))))
+
+
+def _log_ai_variants_issue(context, error):
+    detail = str(error or "").strip()
+    if detail:
+        print(f"[AI VARIANTS] {context}: {detail}", flush=True)
+
+
+def _public_variant_warning(error):
+    detail = str(error or "").strip()
+    normalized = detail.casefold()
+
+    if "openai_api_key" in normalized or ("api key" in normalized and "not set" in normalized):
+        return "AI provider is not configured on this deployment. Showing locally optimized variants instead."
+
+    if "not installed" in normalized or "could not be imported" in normalized:
+        return "AI provider support is unavailable on this deployment. Showing locally optimized variants instead."
+
+    if "timed out" in normalized or "timeout" in normalized:
+        return "The AI provider took too long to respond. Showing locally optimized variants instead."
+
+    return "AI-generated variants are temporarily unavailable. Showing locally optimized variants instead."
 
 
 def _build_variant_response(source_code, language, variants, warning=None):
